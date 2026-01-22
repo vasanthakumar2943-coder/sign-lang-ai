@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -85,26 +86,32 @@ SIGN_DB = {
 
 
 @csrf_exempt
+@require_GET
 def voice_map(request):
     """
     Convert voice/text → sign image sequence
     """
-    if request.method != "GET":
-        return JsonResponse({"sequence": []})
+    try:
+        text = request.GET.get("text", "").strip().lower()
 
-    text = request.GET.get("text", "").strip().lower()
+        if not text:
+            return JsonResponse({"sequence": []})
 
-    if not text:
-        return JsonResponse({"sequence": []})
+        words = text.split()
 
-    words = text.split()
+        sequence = []
+        for w in words:
+            if w in SIGN_DB:
+                sequence.append(SIGN_DB[w])
 
-    sequence = []
-    for w in words:
-        if w in SIGN_DB:
-            sequence.append(SIGN_DB[w])
+        return JsonResponse({"sequence": sequence})
 
-    return JsonResponse({"sequence": sequence})
+    except Exception as e:
+        # 🔥 prevents 500 + fake CORS error on Railway
+        return JsonResponse(
+            {"sequence": [], "error": str(e)},
+            status=200
+        )
 
 
 # ======================================================
