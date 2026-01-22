@@ -13,27 +13,25 @@ from .sign_detector import detect_sign_from_frame
 # 📜 TRANSLATIONS (HISTORY)
 # ======================================================
 
-@api_view(["GET"])
-def recent_translations(request):
+@api_view(["GET", "POST"])
+def translations(request):
     """
-    GET last 10 translations
-    (user-based if authenticated, else global)
+    GET  -> last 10 translations
+    POST -> save new translation
     """
-    qs = Translation.objects.order_by("-created_at")
 
-    if request.user.is_authenticated:
-        qs = qs.filter(user=request.user)
+    # ---------- GET ----------
+    if request.method == "GET":
+        qs = Translation.objects.order_by("-created_at")
 
-    translations = qs[:10]
-    serializer = TranslationSerializer(translations, many=True)
-    return Response(serializer.data)
+        if request.user.is_authenticated:
+            qs = qs.filter(user=request.user)
 
+        translations = qs[:10]
+        serializer = TranslationSerializer(translations, many=True)
+        return Response(serializer.data)
 
-@api_view(["POST"])
-def add_translation(request):
-    """
-    Save a new translation entry
-    """
+    # ---------- POST ----------
     serializer = TranslationSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -84,7 +82,14 @@ def voice_map(request):
     """
     Convert voice/text → sign image sequence
     """
-    text = request.GET.get("text", "").lower()
+    if request.method != "GET":
+        return JsonResponse({"sequence": []})
+
+    text = request.GET.get("text", "").strip().lower()
+
+    if not text:
+        return JsonResponse({"sequence": []})
+
     words = text.split()
 
     sequence = []
