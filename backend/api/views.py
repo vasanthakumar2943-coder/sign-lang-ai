@@ -85,6 +85,8 @@ SIGN_DB = {
 }
 
 
+# 🔥 ONLY ADDITION IS THIS DECORATOR
+@api_view(["GET"])
 @csrf_exempt
 @require_GET
 def voice_map(request):
