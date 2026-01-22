@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Hands } from "@mediapipe/hands";
+
 import { Camera } from "@mediapipe/camera_utils";
 import * as draw from "@mediapipe/drawing_utils";
 import api from "../api/axios"; // ✅ REQUIRED
 
 export default function SignToVoice() {
+  
+  const Hands = window.Hands;
+  
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
