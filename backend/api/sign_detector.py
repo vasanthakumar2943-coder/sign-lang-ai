@@ -1,19 +1,16 @@
-import cv2
 import base64
 import numpy as np
-import mediapipe as mp
 from collections import deque, Counter
 
 # ===============================
-# MediaPipe Hands Initialization
+# SAFE OPTIONAL IMPORTS
 # ===============================
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=1,
-    min_detection_confidence=0.6,
-    min_tracking_confidence=0.6,
-)
+try:
+    import cv2
+    import mediapipe as mp
+except Exception:
+    cv2 = None
+    mp = None
 
 # ===============================
 # Smoothing + Motion State
@@ -29,6 +26,25 @@ def smooth_prediction(label, confidence):
 
 
 # ===============================
+# MediaPipe Init (LAZY)
+# ===============================
+_hands = None
+
+def get_hands():
+    global _hands
+    if _hands is None:
+        if mp is None:
+            raise RuntimeError("MediaPipe not available")
+        _hands = mp.solutions.hands.Hands(
+            static_image_mode=False,
+            max_num_hands=1,
+            min_detection_confidence=0.6,
+            min_tracking_confidence=0.6,
+        )
+    return _hands
+
+
+# ===============================
 # Sign Detection from Base64 Frame
 # ===============================
 def detect_sign_from_frame(image_b64):
@@ -38,6 +54,10 @@ def detect_sign_from_frame(image_b64):
     """
 
     global prev_x
+
+    # 🔒 Safety: prevent server crash in prod
+    if cv2 is None or mp is None:
+        return "UNSUPPORTED_ENV", 0.0
 
     try:
         # -------------------------------
@@ -60,6 +80,7 @@ def detect_sign_from_frame(image_b64):
         # -------------------------------
         # MediaPipe Processing
         # -------------------------------
+        hands = get_hands()
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(rgb)
 
@@ -90,7 +111,7 @@ def detect_sign_from_frame(image_b64):
         # -------------------------------
         # Motion Detection (for BYE)
         # -------------------------------
-        current_x = lm[0].x  # wrist x
+        current_x = lm[0].x
         movement = 0.0
 
         if prev_x is not None:
@@ -99,36 +120,26 @@ def detect_sign_from_frame(image_b64):
         prev_x = current_x
 
         # -------------------------------
-        # Sign Classification
+        # Sign Classification (UNCHANGED)
         # -------------------------------
-
-        # BYE 👋 (open palm + movement)
         if fingers_up == 5 and movement > 0.04:
             return smooth_prediction("BYE", 0.95)
 
-        # HELLO ✋ (open palm static)
         elif fingers_up == 5:
             return smooth_prediction("HELLO", 0.94)
 
-        # PEACE ✌️
         elif index_up and middle_up and not ring_up and not pinky_up:
             return smooth_prediction("PEACE", 0.93)
 
-        # CALL ME 🤙
         elif thumb_up and pinky_up and not index_up and not middle_up and not ring_up:
             return smooth_prediction("CALL_ME", 0.94)
 
-        # YES 👍 (thumbs up)
         elif thumb_up and not index_up and not middle_up and not ring_up and not pinky_up:
             return smooth_prediction("YES", 0.92)
 
-        # NO ✊ (fist)
         elif fingers_up == 0:
             return smooth_prediction("NO", 0.90)
 
-        # -------------------------------
-        # Fallback
-        # -------------------------------
         return smooth_prediction("UNKNOWN", 0.40)
 
     except Exception as e:
