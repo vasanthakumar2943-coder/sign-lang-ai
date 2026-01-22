@@ -1,0 +1,128 @@
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+from .models import Translation
+from .serializers import TranslationSerializer
+from .sign_detector import detect_sign_from_frame
+
+
+# ======================================================
+# 📜 TRANSLATIONS (HISTORY)
+# ======================================================
+
+@api_view(["GET"])
+def recent_translations(request):
+    """
+    GET last 10 translations
+    (user-based if authenticated, else global)
+    """
+    qs = Translation.objects.order_by("-created_at")
+
+    if request.user.is_authenticated:
+        qs = qs.filter(user=request.user)
+
+    translations = qs[:10]
+    serializer = TranslationSerializer(translations, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def add_translation(request):
+    """
+    Save a new translation entry
+    """
+    serializer = TranslationSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save(
+            user=request.user if request.user.is_authenticated else None
+        )
+        return Response({"success": True})
+
+    return Response(serializer.errors, status=400)
+
+
+@api_view(["DELETE"])
+def clear_translations(request):
+    """
+    Clear translation history
+    """
+    qs = Translation.objects.all()
+
+    if request.user.is_authenticated:
+        qs = qs.filter(user=request.user)
+
+    qs.delete()
+    return Response({"success": True})
+
+
+# ======================================================
+# 🎤 VOICE → SIGN MAPPING
+# ======================================================
+
+SIGN_DB = {
+    "hello":     {"label": "HELLO", "image": "/media/signs/hello.png"},
+    "hi":        {"label": "HELLO", "image": "/media/signs/hello.png"},
+    "yes":       {"label": "YES", "image": "/media/signs/yes.png"},
+    "no":        {"label": "NO", "image": "/media/signs/no.png"},
+    "bye":       {"label": "BYE", "image": "/media/signs/bye.png"},
+    "goodbye":   {"label": "BYE", "image": "/media/signs/bye.png"},
+    "call":      {"label": "CALL ME", "image": "/media/signs/call_me.png"},
+    "peace":     {"label": "PEACE", "image": "/media/signs/peace.png"},
+    "love":      {"label": "I LOVE YOU", "image": "/media/signs/i_love_you.png"},
+    "ok":        {"label": "OK", "image": "/media/signs/ok.png"},
+    "welcome":   {"label": "WELCOME", "image": "/media/signs/welcome.png"},
+    "thankyou":  {"label": "THANK YOU", "image": "/media/signs/thankyou.png"},
+}
+
+
+@csrf_exempt
+def voice_map(request):
+    """
+    Convert voice/text → sign image sequence
+    """
+    text = request.GET.get("text", "").lower()
+    words = text.split()
+
+    sequence = []
+    for w in words:
+        if w in SIGN_DB:
+            sequence.append(SIGN_DB[w])
+
+    return JsonResponse({"sequence": sequence})
+
+
+# ======================================================
+# ✋ SIGN → TEXT (ML DETECTOR)
+# ======================================================
+
+@api_view(["POST"])
+def detect_sign(request):
+    """
+    Detect sign from base64 image frame
+    """
+    try:
+        image = request.data.get("image")
+
+        if not image:
+            return Response(
+                {"success": False, "error": "No image provided"},
+                status=400
+            )
+
+        label, confidence = detect_sign_from_frame(image)
+
+        return Response({
+            "success": True,
+            "label": label,
+            "confidence": confidence
+        })
+
+    except Exception as e:
+        return Response(
+            {"success": False, "error": str(e)},
+            status=500
+        )

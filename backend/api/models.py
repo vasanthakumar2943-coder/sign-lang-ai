@@ -1,0 +1,38 @@
+from django.db import models
+from django.contrib.auth.models import User
+
+# ===============================
+# SIGN MODEL (UNCHANGED)
+# ===============================
+class Sign(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+
+    thumb = models.BooleanField()
+    index = models.BooleanField()
+    middle = models.BooleanField()
+    ring = models.BooleanField()
+    pinky = models.BooleanField()
+
+    def __str__(self):
+        return self.name
+
+
+# ===============================
+# TRANSLATION MODEL (UNCHANGED)
+# ===============================
+class Translation(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    input_type = models.CharField(max_length=10)
+    input_value = models.TextField()
+    output_value = models.TextField()
+    confidence = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.input_type} → {self.output_value}"
