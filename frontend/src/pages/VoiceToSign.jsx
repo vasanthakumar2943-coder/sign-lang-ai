@@ -61,7 +61,7 @@ export default function VoiceToSign() {
   };
 
   /* ===============================
-     SAVE TRANSLATION (FIXED URL)
+     SAVE TRANSLATION
   =============================== */
   const saveTranslation = async (inputText, outputText) => {
     try {
@@ -72,14 +72,16 @@ export default function VoiceToSign() {
         confidence: 1.0,
       });
     } catch (err) {
-      console.error("Reminder: failed to save translation", err);
+      console.error("Failed to save translation", err);
     }
   };
 
   /* ===============================
-     TEXT → BACKEND (ML MAPPING)
+     TEXT → BACKEND (VOICE MAP)
   =============================== */
   const handleInput = async (input) => {
+    if (!input || input.trim().length < 2) return;
+
     setText(input);
     setSigns([]);
     setPlayIndex(-1);
@@ -90,7 +92,7 @@ export default function VoiceToSign() {
         params: { text: input },
       });
 
-      if (res.data.sequence?.length) {
+      if (res.data?.sequence?.length) {
         setSigns(res.data.sequence);
         setStatus("Ready");
 
@@ -109,7 +111,19 @@ export default function VoiceToSign() {
   };
 
   /* ===============================
-     PLAY SENTENCE (OPEN MODAL)
+     SAFE INPUT HANDLER (NO FLOOD)
+  =============================== */
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setText(value);
+
+    if (value.trim().length >= 2) {
+      handleInput(value);
+    }
+  };
+
+  /* ===============================
+     PLAY SENTENCE
   =============================== */
   const playSentence = () => {
     if (!signs.length) return;
@@ -163,7 +177,7 @@ export default function VoiceToSign() {
           type="text"
           value={text}
           placeholder="Say or type (e.g. hello how are you)"
-          onChange={(e) => handleInput(e.target.value)}
+          onChange={handleChange}
           className="input-box"
         />
 
