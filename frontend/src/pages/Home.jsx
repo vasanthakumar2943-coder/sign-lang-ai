@@ -14,7 +14,11 @@ export default function Home() {
     api
       .get("translations/")
       .then((res) => {
-        setTranslations(res.data.slice(0, 5));
+        if (Array.isArray(res.data)) {
+          setTranslations(res.data.slice(0, 5));
+        } else {
+          setTranslations([]);
+        }
       })
       .catch(() => setTranslations([]))
       .finally(() => setLoading(false));
@@ -68,14 +72,15 @@ export default function Home() {
         {loading && <p>Loading…</p>}
         {!loading && translations.length === 0 && <p>No translations yet</p>}
 
-        {translations.map((t) => (
-          <div key={t.id} className="glass" style={{ marginTop: 14 }}>
-            <b>{t.input_type.toUpperCase()}</b> → {t.output_value}
-            <div style={{ fontSize: 14, color: "#6a88a5" }}>
-              Confidence: {Number(t.confidence).toFixed(2)}
+        {Array.isArray(translations) &&
+          translations.map((t) => (
+            <div key={t.id} className="glass" style={{ marginTop: 14 }}>
+              <b>{t.input_type.toUpperCase()}</b> → {t.output_value}
+              <div style={{ fontSize: 14, color: "#6a88a5" }}>
+                Confidence: {Number(t.confidence).toFixed(2)}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );

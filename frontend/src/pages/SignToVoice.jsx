@@ -49,10 +49,10 @@ export default function SignToVoice() {
     lastSpokenTimeRef.current = now;
   };
 
-  /* ================= SAVE HISTORY (ADDED) ================= */
+  /* ================= SAVE HISTORY (FIXED URL) ================= */
   const saveTranslation = async (sign, confidence) => {
     try {
-      await api.post("translations/add/", {
+      await api.post("translations/", {
         input_type: "sign",
         input_value: "hand_gesture",
         output_value: sign,
@@ -65,7 +65,7 @@ export default function SignToVoice() {
 
   const toggleScan = () => {
     unlockAudio();
-    setRunning(v => !v);
+    setRunning((v) => !v);
   };
 
   const closeModal = () => {
@@ -129,6 +129,8 @@ export default function SignToVoice() {
         `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`,
     });
 
+    handsRef.current = hands;
+
     hands.setOptions({
       maxNumHands: 1,
       modelComplexity: 1,
@@ -139,8 +141,11 @@ export default function SignToVoice() {
     hands.onResults((res) => {
       if (!runningRef.current) return;
 
+      if (!res.image) return;
+
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
+
       canvas.width = res.image.width;
       canvas.height = res.image.height;
 
@@ -165,13 +170,11 @@ export default function SignToVoice() {
 
       if (stableCountRef.current >= 8) {
         setWord(r.sign);
-        setSentence(s =>
+        setSentence((s) =>
           s.endsWith(r.sign) ? s : `${s} ${r.sign}`.trim()
         );
 
         speak(r.sign);
-
-        // ✅ SAVE TO HOME → RECENT TRANSLATIONS
         saveTranslation(r.sign, r.conf);
 
         stableCountRef.current = 0;
@@ -179,7 +182,11 @@ export default function SignToVoice() {
     });
 
     const cam = new Camera(videoRef.current, {
-      onFrame: async () => hands.send({ image: videoRef.current }),
+      onFrame: async () => {
+        const video = videoRef.current;
+        if (!video || video.videoWidth === 0 || video.videoHeight === 0) return;
+        await hands.send({ image: video });
+      },
       width: 640,
       height: 480,
     });
@@ -232,7 +239,7 @@ export default function SignToVoice() {
             <button className="closeBtn" onClick={closeModal}>✕</button>
             <button
               className="fullscreenBtn"
-              onClick={() => setFullscreen(v => !v)}
+              onClick={() => setFullscreen((v) => !v)}
             >
               ⛶
             </button>

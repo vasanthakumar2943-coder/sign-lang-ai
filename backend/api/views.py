@@ -20,12 +20,14 @@ def translations(request):
     POST -> save new translation
     """
 
+    user = request.user if hasattr(request, "user") else None
+
     # ---------- GET ----------
     if request.method == "GET":
         qs = Translation.objects.order_by("-created_at")
 
-        if request.user.is_authenticated:
-            qs = qs.filter(user=request.user)
+        if user and user.is_authenticated:
+            qs = qs.filter(user=user)
 
         translations = qs[:10]
         serializer = TranslationSerializer(translations, many=True)
@@ -36,7 +38,7 @@ def translations(request):
 
     if serializer.is_valid():
         serializer.save(
-            user=request.user if request.user.is_authenticated else None
+            user=user if user and user.is_authenticated else None
         )
         return Response({"success": True})
 
@@ -48,10 +50,15 @@ def clear_translations(request):
     """
     Clear translation history
     """
+
+    user = request.user if hasattr(request, "user") else None
+
     qs = Translation.objects.all()
 
-    if request.user.is_authenticated:
-        qs = qs.filter(user=request.user)
+    if user and user.is_authenticated:
+        qs = qs.filter(user=user)
+    else:
+        qs = qs.none()  # 🔒 prevent deleting all data accidentally
 
     qs.delete()
     return Response({"success": True})

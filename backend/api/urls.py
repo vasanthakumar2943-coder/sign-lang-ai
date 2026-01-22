@@ -3,9 +3,8 @@ from django.urls import path
 from .views import (
     detect_sign,
     voice_map,
-    recent_translations,
-    add_translation,
-    clear_translations,   # ✅ added (upgrade)
+    translations,        # ✅ replaces recent_translations + add_translation
+    clear_translations,
 )
 
 urlpatterns = [
@@ -16,9 +15,8 @@ urlpatterns = [
     path("voice-map/", voice_map),
 
     # 📜 Translation History
-    path("translations/", recent_translations),
-    path("translations/add/", add_translation),
+    path("translations/", translations),        # GET = recent, POST = add
 
-    # 🗑 Clear History (NEW – does not break old code)
+    # 🗑 Clear History
     path("translations/clear/", clear_translations),
 ]

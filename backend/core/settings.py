@@ -12,6 +12,9 @@ ALLOWED_HOSTS = [
     ".railway.app",
 ]
 
+# ============================
+# APPS
+# ============================
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -26,12 +29,18 @@ INSTALLED_APPS = [
     "api",
 ]
 
+# ============================
+# MIDDLEWARE
+# ============================
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # MUST be first
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+
+    # ❗ CSRF kept (important)
     "django.middleware.csrf.CsrfViewMiddleware",
+
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -42,6 +51,14 @@ MIDDLEWARE = [
 # ============================
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 # ============================
 # URL / TEMPLATES
@@ -85,7 +102,7 @@ USE_I18N = True
 USE_TZ = True
 
 # ============================
-# STATIC FILES (IMPORTANT)
+# STATIC FILES
 # ============================
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -93,7 +110,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ============================
-# MEDIA FILES (SIGN IMAGES)
+# MEDIA FILES
 # ============================
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -107,3 +124,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.railway.app",
     "https://*.vercel.app",
 ]
+
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True

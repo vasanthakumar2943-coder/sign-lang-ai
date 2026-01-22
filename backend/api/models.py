@@ -2,16 +2,16 @@ from django.db import models
 from django.contrib.auth.models import User
 
 # ===============================
-# SIGN MODEL (UNCHANGED)
+# SIGN MODEL (FIXED - SAFE)
 # ===============================
 class Sign(models.Model):
     name = models.CharField(max_length=50, unique=True)
 
-    thumb = models.BooleanField()
-    index = models.BooleanField()
-    middle = models.BooleanField()
-    ring = models.BooleanField()
-    pinky = models.BooleanField()
+    thumb = models.BooleanField(default=False)
+    index = models.BooleanField(default=False)
+    middle = models.BooleanField(default=False)
+    ring = models.BooleanField(default=False)
+    pinky = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

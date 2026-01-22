@@ -11,6 +11,12 @@ export default function VoiceToSign() {
 
   const recognitionRef = useRef(null);
 
+  // ✅ backend base for images (local + production)
+  const BACKEND_BASE =
+    import.meta.env.MODE === "development"
+      ? "http://127.0.0.1:8000"
+      : "https://sign-lang-ai.up.railway.app";
+
   /* ===============================
      SPEECH RECOGNITION
   =============================== */
@@ -32,11 +38,9 @@ export default function VoiceToSign() {
     };
 
     recog.onresult = (e) => {
-      {
-        const spoken = e.results[0][0].transcript;
-        handleInput(spoken);
-        setListening(false);
-      }
+      const spoken = e.results[0][0].transcript;
+      handleInput(spoken);
+      setListening(false);
     };
 
     recog.onerror = () => {
@@ -57,15 +61,15 @@ export default function VoiceToSign() {
   };
 
   /* ===============================
-     SAVE TRANSLATION (ADDED)
+     SAVE TRANSLATION (FIXED URL)
   =============================== */
   const saveTranslation = async (inputText, outputText) => {
     try {
-      await api.post("translations/add/", {
+      await api.post("translations/", {
         input_type: "voice",
         input_value: inputText,
         output_value: outputText,
-        confidence: 1.0, // static safe value
+        confidence: 1.0,
       });
     } catch (err) {
       console.error("Reminder: failed to save translation", err);
@@ -82,7 +86,7 @@ export default function VoiceToSign() {
     setStatus("Processing…");
 
     try {
-      const res = await api.get("/voice-map/", {
+      const res = await api.get("voice-map/", {
         params: { text: input },
       });
 
@@ -90,10 +94,10 @@ export default function VoiceToSign() {
         setSigns(res.data.sequence);
         setStatus("Ready");
 
-        // ✅ SAVE VOICE → SIGN HISTORY
         const output = res.data.sequence
-          .map(s => s.label)
+          .map((s) => s.label)
           .join(" ");
+
         saveTranslation(input, output);
       } else {
         setStatus("No signs found");
@@ -115,15 +119,11 @@ export default function VoiceToSign() {
 
   /* ===============================
      SIGN ANIMATION + VOICE
-     (NO AUTO CLOSE)
   =============================== */
   useEffect(() => {
     if (!showModal) return;
     if (playIndex < 0) return;
-    if (playIndex >= signs.length) {
-      setPlayIndex(signs.length - 1);
-      return;
-    }
+    if (playIndex >= signs.length) return;
 
     const utter = new SpeechSynthesisUtterance(
       signs[playIndex].label
@@ -145,58 +145,56 @@ export default function VoiceToSign() {
     setPlayIndex(-1);
   };
 
- /* ===============================
-   UI
-=============================== */
-return (
-  <div className="page">
-    <div className="card">
-      <h2>🎤 Voice → Sign Language (ASL)</h2>
+  /* ===============================
+     UI
+  =============================== */
+  return (
+    <div className="page">
+      <div className="card">
+        <h2>🎤 Voice → Sign Language (ASL)</h2>
 
-      <button className="btn btn-start" onClick={startListening}>
-        {listening ? "Listening…" : "🎙 Start Speaking"}
-      </button>
-
-      <p className="status">{status}</p>
-
-      <input
-        type="text"
-        value={text}
-        placeholder="Say or type (e.g. hello how are you)"
-        onChange={(e) => handleInput(e.target.value)}
-        className="input-box"
-      />
-
-      <p className="sentence">
-        {text || "—"}
-      </p>
-
-      <div className="actions">
-        <button className="btn btn-speak" onClick={playSentence}>
-          ▶ Play Sentence
+        <button className="btn btn-start" onClick={startListening}>
+          {listening ? "Listening…" : "🎙 Start Speaking"}
         </button>
-      </div>
-    </div>
 
-    {showModal && (
-      <div className="modalOverlay">
-        <div className="modal1">
-          <button className="closeBtn" onClick={closeModal}>✕</button>
+        <p className="status">{status}</p>
 
-          {signs[playIndex] && (
-            <div className="sign-card">
-              <img
-                src={`http://127.0.0.1:8000${signs[playIndex].image}`}
-                alt={signs[playIndex].label}
-              />
-              <div className="sign-label">
-                {signs[playIndex].label}
-              </div>
-            </div>
-          )}
+        <input
+          type="text"
+          value={text}
+          placeholder="Say or type (e.g. hello how are you)"
+          onChange={(e) => handleInput(e.target.value)}
+          className="input-box"
+        />
+
+        <p className="sentence">{text || "—"}</p>
+
+        <div className="actions">
+          <button className="btn btn-speak" onClick={playSentence}>
+            ▶ Play Sentence
+          </button>
         </div>
       </div>
-    )}
-  </div>
-);
+
+      {showModal && (
+        <div className="modalOverlay">
+          <div className="modal1">
+            <button className="closeBtn" onClick={closeModal}>✕</button>
+
+            {signs[playIndex] && (
+              <div className="sign-card">
+                <img
+                  src={`${BACKEND_BASE}${signs[playIndex].image}`}
+                  alt={signs[playIndex].label}
+                />
+                <div className="sign-label">
+                  {signs[playIndex].label}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
