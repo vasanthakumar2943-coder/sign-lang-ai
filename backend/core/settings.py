@@ -4,7 +4,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "dev-secret-key"
 
-DEBUG = True  # keep True for now (later we can make env-based)
+DEBUG = True  # keep True for now
 
 ALLOWED_HOSTS = [
     "localhost",
@@ -33,12 +33,11 @@ INSTALLED_APPS = [
 # MIDDLEWARE
 # ============================
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",  # MUST be first
+    "corsheaders.middleware.CorsMiddleware",  # ✅ MUST be first
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
 
-    # ❗ CSRF kept (important)
     "django.middleware.csrf.CsrfViewMiddleware",
 
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -47,10 +46,9 @@ MIDDLEWARE = [
 ]
 
 # ============================
-# CORS
+# CORS (🔥 MAIN FIX)
 # ============================
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [
     "accept",
@@ -59,6 +57,9 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
+
+# 🚨 REQUIRED for Railway + Vercel
+CORS_ALLOW_CREDENTIALS = False  # ❗ MUST be False when ALLOW_ALL_ORIGINS=True
 
 # ============================
 # URL / TEMPLATES
@@ -116,13 +117,11 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ============================
-# CSRF (Frontend access)
+# CSRF (🚨 IMPORTANT FIX)
 # ============================
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://*.railway.app",
-    "https://*.vercel.app",
+    "https://sign-lang-ai.vercel.app",
+    "https://sign-lang-ai.up.railway.app",
 ]
 
 CSRF_COOKIE_SAMESITE = "None"
