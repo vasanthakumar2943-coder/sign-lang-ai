@@ -4,14 +4,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    # Admin panel
     path("admin/", admin.site.urls),
-
-    # API routes (detect, voice-map, translations, clear, etc.)
     path("api/", include("api.urls")),
 ]
 
-# Serve media files (sign images) in development
+# ✅ SERVE MEDIA FILES (IMPORTANT FOR RAILWAY)
 if settings.DEBUG:
     urlpatterns += static(
         settings.MEDIA_URL,
